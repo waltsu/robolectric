@@ -21,6 +21,7 @@ import static com.xtremelabs.robolectric.Robolectric.shadowOf;
 import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 @RunWith(WithTestDefaultsRunner.class)
@@ -326,6 +327,12 @@ public class ListViewTest {
         listView.setAdapter(lazyAdapter);
         ShadowHandler.idleMainLooper();
         shadowOf(listView).checkValidity();
+    }
+    
+    @Test
+    public void getChoiceMode_ShouldReturnSameModeWhichWasSet() {
+    	listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+    	assertTrue(listView.getChoiceMode() == ListView.CHOICE_MODE_MULTIPLE);
     }
 
     private ListAdapter prepareWithListAdapter() {
