@@ -26,6 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 
@@ -182,7 +183,7 @@ public class DefaultRequestDirectorTest {
         assertThat(response.getStatusLine().getStatusCode(), equalTo(500));
         assertThat(Strings.fromStream(response.getEntity().getContent()), equalTo("later"));
     }
-    
+
     @Test
     public void shouldReturnRequestsByRule_WithCustomRequestMatcher() throws Exception {
         Robolectric.setDefaultHttpResponse(404, "no such page");
@@ -265,7 +266,7 @@ public class DefaultRequestDirectorTest {
         ConnectionKeepAliveStrategy strategy = shadowOf((DefaultRequestDirector) Robolectric.getSentHttpRequestInfo(0).getRequestDirector()).getConnectionKeepAliveStrategy();
         assertSame(strategy, connectionKeepAliveStrategy);
     }
-    
+
     @Test
     public void shouldSupportBasicResponseHandlerHandleResponse() throws Exception {
         Robolectric.addPendingHttpResponse(200, "OK", new BasicHeader("Content-Type", "text/plain"));
@@ -338,4 +339,27 @@ public class DefaultRequestDirectorTest {
 
         fail("Exception should have been thrown");
     }
+
+    @Test(expected = IOException.class)
+    public void shouldSupportRealHttpRequests() throws Exception {
+        Robolectric.getFakeHttpLayer().interceptHttpRequests(false);
+        DefaultHttpClient client = new DefaultHttpClient();
+        client.execute(new HttpGet("http://www.this-host-should-not-exist-123456790.org:999"));
+    }
+
+    @Test
+    public void shouldReturnResponseFromHttpResponseGenerator() throws Exception {
+        Robolectric.addPendingHttpResponse(new HttpResponseGenerator() {
+            @Override
+            public HttpResponse getResponse(HttpRequest request) {
+                return new TestHttpResponse(200, "a happy response body");
+            }
+        });
+        HttpResponse response = requestDirector.execute(null, new HttpGet("http://example.com"), null);
+
+        assertNotNull(response);
+        assertThat(response.getStatusLine().getStatusCode(), equalTo(200));
+        assertThat(Strings.fromStream(response.getEntity().getContent()), equalTo("a happy response body"));
+    }
+
 }

@@ -17,11 +17,22 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 @RunWith(WithTestDefaultsRunner.class)
 public class HandlerTest {
     private Transcript transcript;
     TestRunnable scratchRunnable = new TestRunnable();
+
+    private Handler.Callback callback = new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
+            hasHandlerCallbackHandledMessage = true;
+            return false;
+        }
+    };
+
+    private Boolean hasHandlerCallbackHandledMessage = false;
 
     @Before
     public void setUp() throws Exception {
@@ -73,6 +84,13 @@ public class HandlerTest {
         shadowOf(looper2).idle();
 
         transcript.assertEventsSoFar("second thing");
+    }
+
+    @Test
+    public void shouldCallProvidedHandlerCallback() {
+        Handler handler = new Handler(callback);
+        handler.sendMessage(new Message());
+        assertTrue(hasHandlerCallbackHandledMessage);
     }
 
     @Test
@@ -177,20 +195,6 @@ public class HandlerTest {
     }
 
     @Test
-    public void sendEmptyMessageHandler() {
-
-        final Handler handler = new Handler(new Handler.Callback() {
-
-            @Override
-            public boolean handleMessage(Message message) {
-                throw new UnsupportedOperationException("Method not implemented");
-            }
-
-        });
-        handler.sendEmptyMessage(0);
-    }
-
-    @Test
     public void sendEmptyMessage_addMessageToQueue() {
         Robolectric.pauseMainLooper();
         Handler handler = new Handler();
@@ -221,6 +225,20 @@ public class HandlerTest {
         handler.sendEmptyMessageDelayed(123, 500);
         handler.removeMessages(123);
         assertThat(handler.hasMessages(123), equalTo(false));
+    }
+
+    @Test
+    public void testHasMessagesWithWhatAndObject() {
+        Robolectric.pauseMainLooper();
+        Object testObject = new Object();
+        Handler handler = new Handler();
+        Message message = handler.obtainMessage(123, testObject);
+
+        assertFalse(handler.hasMessages(123, testObject));
+
+        handler.sendMessage(message);
+
+        assertTrue(handler.hasMessages(123, testObject));
     }
 
     @Test

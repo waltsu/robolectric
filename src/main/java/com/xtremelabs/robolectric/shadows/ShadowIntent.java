@@ -48,6 +48,20 @@ public class ShadowIntent {
         __constructor__(action, null);
     }
 
+    public void __constructor__(Intent intent) {
+        ShadowIntent other = shadowOf(intent);
+        extras.putAll(other.extras);
+        action = other.action;
+        componentName = other.componentName;
+        type = other.type;
+        data = other.data;
+        flags = other.flags;
+        intentClass = other.intentClass;
+        packageName = other.packageName;
+        categories.addAll(other.categories);
+        uri = other.uri;
+    }
+
     @Implementation
     public static Intent createChooser(Intent target, CharSequence title) {
         Intent intent = new Intent(Intent.ACTION_CHOOSER);
@@ -126,6 +140,11 @@ public class ShadowIntent {
     @Implementation
     public Intent setClassName(String packageName, String className) {
         componentName = new ComponentName(packageName, className);
+        try {
+            this.intentClass = Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            // ignore
+        }
         return realIntent;
     }
 
@@ -181,6 +200,18 @@ public class ShadowIntent {
     
     @Implementation
     public Intent putExtra(String key, int value) {
+        extras.put(key, value);
+        return realIntent;
+    }
+
+    @Implementation
+    public Intent putExtra(String key, double value) {
+        extras.put(key, value);
+        return realIntent;
+    }
+
+    @Implementation
+    public Intent putExtra(String key, float value) {
         extras.put(key, value);
         return realIntent;
     }
@@ -285,6 +316,17 @@ public class ShadowIntent {
     public ArrayList<String> getStringArrayListExtra(String name) {
         return (ArrayList<String>) extras.get(name);
     }
+    
+    @Implementation
+    public Intent putIntegerArrayListExtra(String key, ArrayList<Integer> value) {
+        extras.put(key, value);
+        return realIntent;
+    }
+
+    @Implementation
+    public ArrayList<Integer> getIntegerArrayListExtra(String name) {
+        return (ArrayList<Integer>) extras.get(name);
+    }
 
     @Implementation
     public Intent putParcelableArrayListExtra(String key, ArrayList<Parcelable> value) {
@@ -331,7 +373,19 @@ public class ShadowIntent {
         Long foundValue = (Long) extras.get(name);
         return foundValue == null ? defaultValue : foundValue;
     }
-    
+
+    @Implementation
+    public double getDoubleExtra(String name, double defaultValue) {
+        Double foundValue = (Double) extras.get(name);
+        return foundValue == null ? defaultValue : foundValue;
+    }
+
+    @Implementation
+    public float getFloatExtra(String name, float defaultValue) {
+        Float foundValue = (Float) extras.get(name);
+        return foundValue == null ? defaultValue : foundValue;
+    }
+
     @Implementation
     public byte[] getByteArrayExtra(String name) {
         return (byte[]) extras.get(name);

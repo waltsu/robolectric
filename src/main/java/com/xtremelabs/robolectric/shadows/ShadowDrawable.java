@@ -29,6 +29,7 @@ public class ShadowDrawable {
     private int alpha;
     private InputStream inputStream;
     private int level;
+    private int loadedFromResourceId = -1;
 
     @Implementation
     public static Drawable createFromStream(InputStream is, String srcName) {
@@ -38,6 +39,20 @@ public class ShadowDrawable {
         BitmapDrawable drawable = new BitmapDrawable(Robolectric.newInstanceOf(Bitmap.class));
         shadowOf(drawable).setSource(srcName);
         shadowOf(drawable).setInputStream(is);
+        return drawable;
+    }
+
+    @Implementation
+    public static Drawable createFromPath(String pathName) {
+        BitmapDrawable drawable = new BitmapDrawable(Robolectric.newInstanceOf(Bitmap.class));
+        shadowOf(drawable).setPath(pathName);
+        return drawable;
+    }
+
+    public static Drawable createFromResourceId(int resourceId) {
+        Bitmap bitmap = Robolectric.newInstanceOf(Bitmap.class);
+        shadowOf(bitmap).setLoadedFromResourceId(resourceId);
+        BitmapDrawable drawable = new BitmapDrawable(bitmap);
         return drawable;
     }
 
@@ -153,5 +168,13 @@ public class ShadowDrawable {
 
     public static void reset() {
         corruptStreamSources.clear();
+    }
+
+    public int getLoadedFromResourceId() {
+        return loadedFromResourceId;
+    }
+
+    public void setLoadedFromResourceId(int resourceId) {
+        loadedFromResourceId = resourceId;
     }
 }

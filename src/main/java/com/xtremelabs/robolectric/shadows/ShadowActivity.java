@@ -6,12 +6,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.KeyEvent;
-import android.view.LayoutInflater;
-import android.view.MenuInflater;
-import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
+import android.view.*;
 import android.widget.FrameLayout;
 import com.xtremelabs.robolectric.Robolectric;
 import com.xtremelabs.robolectric.internal.Implementation;
@@ -33,7 +28,7 @@ import static com.xtremelabs.robolectric.Robolectric.shadowOf;
 @Implements(Activity.class)
 public class ShadowActivity extends ShadowContextWrapper {
     @RealObject
-    private Activity realActivity;
+    protected Activity realActivity;
 
     private Intent intent;
     View contentView;
@@ -166,6 +161,10 @@ public class ShadowActivity extends ShadowContextWrapper {
         finishWasCalled = true;
     }
 
+    public void resetIsFinishing() {
+        finishWasCalled = false;
+    }
+
     /**
      * @return whether {@link #finish()} was called
      */
@@ -191,6 +190,11 @@ public class ShadowActivity extends ShadowContextWrapper {
     @Implementation
     public void runOnUiThread(Runnable action) {
         Robolectric.getUiThreadScheduler().post(action);
+    }
+
+    @Implementation
+    public void onCreate(Bundle bundle) {
+
     }
 
     /**
@@ -373,6 +377,21 @@ public class ShadowActivity extends ShadowContextWrapper {
     }
 
     @Implementation
+    public final void dismissDialog(int id) {
+        final Dialog dialog = dialogForId.get(id);
+        if (dialog == null) {
+            throw new IllegalArgumentException();
+        }
+
+        dialog.dismiss();
+    }
+
+    @Implementation
+    public final void removeDialog(int id) {
+        dialogForId.remove(id);
+    }
+
+    @Implementation
     public final boolean showDialog(int id, Bundle bundle) {
         Dialog dialog = null;
         this.lastShownDialogId = id;
@@ -428,5 +447,9 @@ public class ShadowActivity extends ShadowContextWrapper {
     public void overridePendingTransition(int enterAnim, int exitAnim) {
         pendingTransitionEnterAnimResId = enterAnim;
         pendingTransitionExitAnimResId = exitAnim;
+    }
+
+    public Dialog getDialogById(int dialogId) {
+        return dialogForId.get(dialogId);
     }
 }

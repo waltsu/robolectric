@@ -9,6 +9,7 @@ import com.xtremelabs.robolectric.internal.Implementation;
 import com.xtremelabs.robolectric.internal.Implements;
 import com.xtremelabs.robolectric.internal.RealObject;
 
+import static android.graphics.Shader.TileMode;
 import static com.xtremelabs.robolectric.Robolectric.shadowOf;
 
 @SuppressWarnings({"UnusedDeclaration"})
@@ -17,8 +18,11 @@ public class ShadowBitmapDrawable extends ShadowDrawable {
     private Bitmap bitmap;
     private ColorFilter colorFilter;
     private String drawableCreateFromStreamSource;
+    private String drawableCreateFromPath;
 
     @RealObject private BitmapDrawable realBitmapDrawable;
+    private TileMode tileModeX;
+    private TileMode tileModeY;
 
     public void __constructor__(Bitmap bitmap) {
         this.bitmap = bitmap;
@@ -53,6 +57,7 @@ public class ShadowBitmapDrawable extends ShadowDrawable {
      * @return resource id from which this {@code BitmapDrawable} was loaded
      * @deprecated use com.xtremelabs.robolectric.shadows.ShadowBitmap#getLoadedFromResourceId() instead.
      */
+    @Override
     public int getLoadedFromResourceId() {
         return shadowOf(bitmap).getLoadedFromResourceId();
     }
@@ -66,7 +71,43 @@ public class ShadowBitmapDrawable extends ShadowDrawable {
         return drawableCreateFromStreamSource;
     }
 
-    @Override @Implementation
+    //Used by ShadowDrawable.createFromPath()
+    public void setPath(String drawableCreateFromPath) {
+        this.drawableCreateFromPath = drawableCreateFromPath;
+    }
+
+    public String getPath() {
+        return drawableCreateFromPath;
+    }
+
+    @Implementation
+    public void setTileModeX(TileMode mode) {
+        tileModeX = mode;
+    }
+
+    @Implementation
+    public TileMode getTileModeX() {
+        return tileModeX;
+    }
+
+    @Implementation
+    public void setTileModeY(TileMode mode) {
+        tileModeY = mode;
+    }
+
+    @Implementation
+    public TileMode getTileModeY() {
+        return tileModeY;
+    }
+    
+    @Implementation
+    public void setTileModeXY(TileMode modeX, TileMode modeY) {
+        setTileModeX(modeX);
+        setTileModeY(modeY);
+    }
+
+    @Override
+    @Implementation
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != ShadowBitmapDrawable.class) return false;
@@ -78,12 +119,14 @@ public class ShadowBitmapDrawable extends ShadowDrawable {
         return super.equals(o);
     }
 
-    @Override @Implementation
+    @Override
+    @Implementation
     public int hashCode() {
         return bitmap != null ? bitmap.hashCode() : 0;
     }
 
-    @Override @Implementation
+    @Override
+    @Implementation
     public String toString() {
         return "ShadowBitmapDrawable{" +
                 "bitmap=" + bitmap +

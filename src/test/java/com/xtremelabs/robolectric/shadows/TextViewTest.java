@@ -1,9 +1,7 @@
 package com.xtremelabs.robolectric.shadows;
 
 import android.app.Activity;
-import android.text.Editable;
-import android.text.InputType;
-import android.text.TextWatcher;
+import android.text.*;
 import android.text.method.ArrowKeyMovementMethod;
 import android.text.method.MovementMethod;
 import android.text.style.URLSpan;
@@ -13,17 +11,17 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.TextView;
 import com.xtremelabs.robolectric.R;
 import com.xtremelabs.robolectric.WithTestDefaultsRunner;
+import junit.framework.Assert;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 import static com.xtremelabs.robolectric.Robolectric.shadowOf;
 import static java.util.Arrays.asList;
+import static junit.framework.Assert.assertFalse;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -38,9 +36,9 @@ import static org.mockito.Mockito.verify;
 @RunWith(WithTestDefaultsRunner.class)
 public class TextViewTest {
 
-	private static final String INITIAL_TEXT = "initial text";
-	private static final String NEW_TEXT = "new text";
-	private TextView textView;
+    private static final String INITIAL_TEXT = "initial text";
+    private static final String NEW_TEXT = "new text";
+    private TextView textView;
 
     @Before
     public void setUp() throws Exception {
@@ -141,150 +139,218 @@ public class TextViewTest {
     }
 
     @Test
-    public void shouldNotHaveTransformationMethodByDefault(){
+    public void shouldNotHaveTransformationMethodByDefault() {
         ShadowTextView view = new ShadowTextView();
         assertThat(view.getTransformationMethod(), is(CoreMatchers.<Object>nullValue()));
     }
 
     @Test
-    public void shouldAllowSettingATransformationMethod(){
+    public void shouldAllowSettingATransformationMethod() {
         ShadowTextView view = new ShadowTextView();
         view.setTransformationMethod(new ShadowPasswordTransformationMethod());
         assertEquals(view.getTransformationMethod().getClass(), ShadowPasswordTransformationMethod.class);
     }
-    
+
     @Test
     public void testGetInputType() throws Exception {
         assertThat(textView.getInputType(), not(equalTo(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD)));
         textView.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         assertThat(textView.getInputType(), equalTo(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD));
     }
-    
-    @Test
-	public void givenATextViewWithATextWatcherAdded_WhenSettingTextWithTextResourceId_ShouldNotifyTextWatcher() {
-    	MockTextWatcher mockTextWatcher = new MockTextWatcher();
-    	textView.addTextChangedListener(mockTextWatcher);
 
-    	textView.setText(R.string.hello);
-		
-		assertEachTextWatcherEventWasInvoked(mockTextWatcher);
+    @Test
+    public void givenATextViewWithATextWatcherAdded_WhenSettingTextWithTextResourceId_ShouldNotifyTextWatcher() {
+        MockTextWatcher mockTextWatcher = new MockTextWatcher();
+        textView.addTextChangedListener(mockTextWatcher);
+
+        textView.setText(R.string.hello);
+
+        assertEachTextWatcherEventWasInvoked(mockTextWatcher);
     }
-    
-    @Test
-	public void givenATextViewWithATextWatcherAdded_WhenSettingTextWithCharSequence_ShouldNotifyTextWatcher() {
-    	MockTextWatcher mockTextWatcher = new MockTextWatcher();
-    	textView.addTextChangedListener(mockTextWatcher);
 
-		textView.setText("text");
-		
-		assertEachTextWatcherEventWasInvoked(mockTextWatcher);
-	}
-    
     @Test
-	public void givenATextViewWithMultipleTextWatchersAdded_WhenSettingText_ShouldNotifyEachTextWatcher() {
-    	List<MockTextWatcher> mockTextWatchers = anyNumberOfTextWatchers();
-    	for (MockTextWatcher textWatcher : mockTextWatchers) {
-    		textView.addTextChangedListener(textWatcher);
+    public void givenATextViewWithATextWatcherAdded_WhenSettingTextWithCharSequence_ShouldNotifyTextWatcher() {
+        MockTextWatcher mockTextWatcher = new MockTextWatcher();
+        textView.addTextChangedListener(mockTextWatcher);
+
+        textView.setText("text");
+
+        assertEachTextWatcherEventWasInvoked(mockTextWatcher);
+    }
+
+    @Test
+    public void givenATextViewWithATextWatcherAdded_WhenSettingNullText_ShouldNotifyTextWatcher() {
+        MockTextWatcher mockTextWatcher = new MockTextWatcher();
+        textView.addTextChangedListener(mockTextWatcher);
+
+        textView.setText(null);
+
+        assertEachTextWatcherEventWasInvoked(mockTextWatcher);
+    }
+
+    @Test
+    public void givenATextViewWithMultipleTextWatchersAdded_WhenSettingText_ShouldNotifyEachTextWatcher() {
+        List<MockTextWatcher> mockTextWatchers = anyNumberOfTextWatchers();
+        for (MockTextWatcher textWatcher : mockTextWatchers) {
+            textView.addTextChangedListener(textWatcher);
         }
-    	
-		textView.setText("text");
-		
-    	for (MockTextWatcher textWatcher : mockTextWatchers) {
-    		assertEachTextWatcherEventWasInvoked(textWatcher);
+
+        textView.setText("text");
+
+        for (MockTextWatcher textWatcher : mockTextWatchers) {
+            assertEachTextWatcherEventWasInvoked(textWatcher);
         }
-	}
-    
+    }
+
     @Test
-	public void whenSettingText_ShouldFireBeforeTextChangedWithCorrectArguments() {
-		textView.setText(INITIAL_TEXT);
-		TextWatcher mockTextWatcher = mock(TextWatcher.class);
-		textView.addTextChangedListener(mockTextWatcher);
-		
-		textView.setText(NEW_TEXT);
-		
-		verify(mockTextWatcher).beforeTextChanged(INITIAL_TEXT, 0, INITIAL_TEXT.length(), NEW_TEXT.length());
-	}
-    
+    public void whenSettingText_ShouldFireBeforeTextChangedWithCorrectArguments() {
+        textView.setText(INITIAL_TEXT);
+        TextWatcher mockTextWatcher = mock(TextWatcher.class);
+        textView.addTextChangedListener(mockTextWatcher);
+
+        textView.setText(NEW_TEXT);
+
+        verify(mockTextWatcher).beforeTextChanged(INITIAL_TEXT, 0, INITIAL_TEXT.length(), NEW_TEXT.length());
+    }
+
     @Test
-	public void whenSettingText_ShouldFireOnTextChangedWithCorrectArguments() {
-    	textView.setText(INITIAL_TEXT);
-		TextWatcher mockTextWatcher = mock(TextWatcher.class);
-		textView.addTextChangedListener(mockTextWatcher);
-		
-		textView.setText(NEW_TEXT);
-		
-		verify(mockTextWatcher).onTextChanged(NEW_TEXT, 0, INITIAL_TEXT.length(), NEW_TEXT.length());
-	}
-    
+    public void whenSettingText_ShouldFireOnTextChangedWithCorrectArguments() {
+        textView.setText(INITIAL_TEXT);
+        TextWatcher mockTextWatcher = mock(TextWatcher.class);
+        textView.addTextChangedListener(mockTextWatcher);
+
+        textView.setText(NEW_TEXT);
+
+        verify(mockTextWatcher).onTextChanged(NEW_TEXT, 0, INITIAL_TEXT.length(), NEW_TEXT.length());
+    }
+
     @Test
-	public void whenSettingText_ShouldFireAfterTextChangedWithCorrectArgument() {
-		MockTextWatcher mockTextWatcher = new MockTextWatcher();
-		textView.addTextChangedListener(mockTextWatcher);
-		
-		textView.setText(NEW_TEXT);
-		
-		assertThat(mockTextWatcher.afterTextChangeArgument.toString(), equalTo(NEW_TEXT));
-	}
-    
+    public void whenSettingText_ShouldFireAfterTextChangedWithCorrectArgument() {
+        MockTextWatcher mockTextWatcher = new MockTextWatcher();
+        textView.addTextChangedListener(mockTextWatcher);
+
+        textView.setText(NEW_TEXT);
+
+        assertThat(mockTextWatcher.afterTextChangeArgument.toString(), equalTo(NEW_TEXT));
+    }
+
     @Test
     public void whenAppendingText_ShouldAppendNewTextAfterOldOne() {
-    	textView.setText(INITIAL_TEXT);
-    	textView.append(NEW_TEXT);
-    	
-    	assertEquals(INITIAL_TEXT + NEW_TEXT, textView.getText());
+        textView.setText(INITIAL_TEXT);
+        textView.append(NEW_TEXT);
+
+        assertEquals(INITIAL_TEXT + NEW_TEXT, textView.getText());
     }
-    
+
     @Test
     public void whenAppendingText_ShouldFireBeforeTextChangedWithCorrectArguments() {
-		textView.setText(INITIAL_TEXT);
-		TextWatcher mockTextWatcher = mock(TextWatcher.class);
-		textView.addTextChangedListener(mockTextWatcher);
-		
-		textView.append(NEW_TEXT);
-		
-		verify(mockTextWatcher).beforeTextChanged(INITIAL_TEXT, 0, INITIAL_TEXT.length(), INITIAL_TEXT.length() + NEW_TEXT.length());
+        textView.setText(INITIAL_TEXT);
+        TextWatcher mockTextWatcher = mock(TextWatcher.class);
+        textView.addTextChangedListener(mockTextWatcher);
+
+        textView.append(NEW_TEXT);
+
+        verify(mockTextWatcher).beforeTextChanged(INITIAL_TEXT, 0, INITIAL_TEXT.length(), INITIAL_TEXT.length() + NEW_TEXT.length());
     }
-    
+
     @Test
     public void whenAppendingText_ShouldFireOnTextChangedWithCorrectArguments() {
-		textView.setText(INITIAL_TEXT);
-		TextWatcher mockTextWatcher = mock(TextWatcher.class);
-		textView.addTextChangedListener(mockTextWatcher);
-		
-		textView.append(NEW_TEXT);
-		
-		verify(mockTextWatcher).onTextChanged(INITIAL_TEXT + NEW_TEXT, 0, INITIAL_TEXT.length(), INITIAL_TEXT.length() + NEW_TEXT.length());
+        textView.setText(INITIAL_TEXT);
+        TextWatcher mockTextWatcher = mock(TextWatcher.class);
+        textView.addTextChangedListener(mockTextWatcher);
+
+        textView.append(NEW_TEXT);
+
+        verify(mockTextWatcher).onTextChanged(INITIAL_TEXT + NEW_TEXT, 0, INITIAL_TEXT.length(), INITIAL_TEXT.length() + NEW_TEXT.length());
     }
-    
+
     @Test
     public void whenAppendingText_ShouldFireAfterTextChangedWithCorrectArgument() {
-    	textView.setText(INITIAL_TEXT);
-		MockTextWatcher mockTextWatcher = new MockTextWatcher();
-		textView.addTextChangedListener(mockTextWatcher);
-		
-		textView.append(NEW_TEXT);
-		
-		assertThat(mockTextWatcher.afterTextChangeArgument.toString(), equalTo(INITIAL_TEXT + NEW_TEXT));
+        textView.setText(INITIAL_TEXT);
+        MockTextWatcher mockTextWatcher = new MockTextWatcher();
+        textView.addTextChangedListener(mockTextWatcher);
+
+        textView.append(NEW_TEXT);
+
+        assertThat(mockTextWatcher.afterTextChangeArgument.toString(), equalTo(INITIAL_TEXT + NEW_TEXT));
     }
-    
+
+    @Test
+    public void removeTextChangedListener_shouldRemoveTheListener() throws Exception {
+        MockTextWatcher watcher = new MockTextWatcher();
+        textView.addTextChangedListener(watcher);
+        assertTrue(shadowOf(textView).getWatchers().contains(watcher));
+
+        textView.removeTextChangedListener(watcher);
+        assertFalse(shadowOf(textView).getWatchers().contains(watcher));
+    }
+
+    @Test
+    public void getPaint_returnsMeasureTextEnabledObject() throws Exception {
+        assertThat(textView.getPaint().measureText("12345"), equalTo(5f));
+    }
+
+    @Test
+    public void append_whenSelectionIsAtTheEnd_shouldKeepSelectionAtTheEnd() throws Exception {
+        textView.setText("1");
+        shadowOf(textView).setSelection(0, 0);
+        textView.append("2");
+        assertEquals(0, textView.getSelectionEnd());
+        assertEquals(0, textView.getSelectionStart());
+
+        shadowOf(textView).setSelection(2, 2);
+        textView.append("3");
+        assertEquals(3, textView.getSelectionEnd());
+        assertEquals(3, textView.getSelectionStart());
+    }
+
+    @Test
+    public void append_whenSelectionReachesToEnd_shouldExtendSelectionToTheEnd() throws Exception {
+        textView.setText("12");
+        shadowOf(textView).setSelection(0, 2);
+        textView.append("3");
+        assertEquals(3, textView.getSelectionEnd());
+        assertEquals(0, textView.getSelectionStart());
+    }
+
+    @Test
+    public void testSetCompountDrawablesWithIntrinsicBounds_int_shouldCreateDrawablesWithResourceIds() throws Exception {
+        textView.setCompoundDrawablesWithIntrinsicBounds(6, 7, 8, 9);
+
+        Assert.assertEquals(6, shadowOf(textView.getCompoundDrawables()[0]).getLoadedFromResourceId());
+        Assert.assertEquals(7, shadowOf(textView.getCompoundDrawables()[1]).getLoadedFromResourceId());
+        Assert.assertEquals(8, shadowOf(textView.getCompoundDrawables()[2]).getLoadedFromResourceId());
+        Assert.assertEquals(9, shadowOf(textView.getCompoundDrawables()[3]).getLoadedFromResourceId());
+    }
+
+    @Test
+    public void testSetCompountDrawablesWithIntrinsicBounds_int_shouldNotCreateDrawablesForZero() throws Exception {
+        textView.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
+
+        Assert.assertNull(textView.getCompoundDrawables()[0]);
+        Assert.assertNull(textView.getCompoundDrawables()[1]);
+        Assert.assertNull(textView.getCompoundDrawables()[2]);
+        Assert.assertNull(textView.getCompoundDrawables()[3]);
+    }
+
     private List<MockTextWatcher> anyNumberOfTextWatchers() {
-		List<MockTextWatcher> mockTextWatchers = new ArrayList<MockTextWatcher>();
-		int numberBetweenOneAndTen = new Random().nextInt(10) + 1;
-		for (int i = 0; i < numberBetweenOneAndTen; i++) {
-			mockTextWatchers.add(new MockTextWatcher());
+        List<MockTextWatcher> mockTextWatchers = new ArrayList<MockTextWatcher>();
+        int numberBetweenOneAndTen = new Random().nextInt(10) + 1;
+        for (int i = 0; i < numberBetweenOneAndTen; i++) {
+            mockTextWatchers.add(new MockTextWatcher());
         }
-		return mockTextWatchers;
-	}
+        return mockTextWatchers;
+    }
 
-	private void assertEachTextWatcherEventWasInvoked(MockTextWatcher mockTextWatcher) {
-    	assertTrue("Expected each TextWatcher event to have been invoked once", mockTextWatcher.methodsCalled.size() == 3);
-    	
-		assertThat(mockTextWatcher.methodsCalled.get(0), equalTo("beforeTextChanged"));
-		assertThat(mockTextWatcher.methodsCalled.get(1), equalTo("onTextChanged"));
-		assertThat(mockTextWatcher.methodsCalled.get(2), equalTo("afterTextChanged"));
-	}
+    private void assertEachTextWatcherEventWasInvoked(MockTextWatcher mockTextWatcher) {
+        assertTrue("Expected each TextWatcher event to have been invoked once", mockTextWatcher.methodsCalled.size() == 3);
 
-	private List<String> urlStringsFrom(URLSpan[] urlSpans) {
+        assertThat(mockTextWatcher.methodsCalled.get(0), equalTo("beforeTextChanged"));
+        assertThat(mockTextWatcher.methodsCalled.get(1), equalTo("onTextChanged"));
+        assertThat(mockTextWatcher.methodsCalled.get(2), equalTo("afterTextChanged"));
+    }
+
+    private List<String> urlStringsFrom(URLSpan[] urlSpans) {
         List<String> urls = new ArrayList<String>();
         for (URLSpan urlSpan : urlSpans) {
             urls.add(urlSpan.getURL());
@@ -303,27 +369,27 @@ public class TextViewTest {
             return false;
         }
     }
-    
+
     private static class MockTextWatcher implements TextWatcher {
 
-    	List<String> methodsCalled = new ArrayList<String>();
-    	Editable afterTextChangeArgument;
-    	
-		@Override
-		public void beforeTextChanged(CharSequence s, int start, int count,	int after) {
-			methodsCalled.add("beforeTextChanged");
-		}
+        List<String> methodsCalled = new ArrayList<String>();
+        Editable afterTextChangeArgument;
 
-		@Override
-		public void onTextChanged(CharSequence s, int start, int before, int count) {
-			methodsCalled.add("onTextChanged");
-		}
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            methodsCalled.add("beforeTextChanged");
+        }
 
-		@Override
-		public void afterTextChanged(Editable s) {
-			methodsCalled.add("afterTextChanged");
-			afterTextChangeArgument = s;
-		}
-    	
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+            methodsCalled.add("onTextChanged");
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+            methodsCalled.add("afterTextChanged");
+            afterTextChangeArgument = s;
+        }
+
     }
 }

@@ -335,6 +335,12 @@ public class ListViewTest {
     	assertTrue(listView.getChoiceMode() == ListView.CHOICE_MODE_MULTIPLE);
     }
 
+    @Test
+    public void shouldRecordLatestCallToSmoothScrollToPostion() throws Exception {
+        listView.smoothScrollToPosition(10);
+        assertThat(shadowOf(listView).getSmoothScrolledPosition(), equalTo(10));
+    }
+
     private ListAdapter prepareWithListAdapter() {
         ListAdapter adapter = new ListAdapter("a", "b", "c");
         listView.setAdapter(adapter);

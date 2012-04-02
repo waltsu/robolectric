@@ -46,10 +46,13 @@ public final class R {
         public static final int test_menu_1 = nextId++;
         public static final int test_menu_2 = nextId++;
         public static final int test_menu_3 = nextId++;
-        
+
         public static final int group_id_1 = nextId++;
-        
+
         public static final int test_submenu_1 = nextId++;
+
+        public static final int fragment = nextId++;
+        public static final int dynamic_fragment_container = nextId++;
     }
 
     public static final class string {
@@ -110,6 +113,9 @@ public final class R {
         public static final int text_views = nextId++;
         public static final int text_views_hints = nextId++;
         public static final int toplevel_merge = nextId++;
+        public static final int tab_activity = nextId++;
+        public static final int different_screen_sizes = nextId++;
+        public static final int fragment_activity = nextId++;
     }
 
     public static final class raw {
@@ -127,11 +133,24 @@ public final class R {
     }
 
     public static final class styleable {
-        public static final int[] TitleBar = { id.textStyle };
+        public static final int[] TitleBar = {id.textStyle};
         public static final int TitleBar_textStyle = 0;
 
-        public static final int[] HeaderBar = { id.textStyle2, id.textStyle3 };
+        public static final int[] HeaderBar = {id.textStyle2, id.textStyle3};
         public static final int HeaderBar_textStyle2 = 0;
         public static final int HeaderBar_textStyle3 = 1;
+    }
+
+    public static final class dimen {
+        public static final int test_dp_dimen = nextId++;
+        public static final int test_dip_dimen = nextId++;
+        public static final int test_px_dimen = nextId++;
+        public static final int test_sp_dimen = nextId++;
+    }
+
+    public static final class integer {
+        public static final int test_non_integer = nextId++;
+        public static final int test_integer1 = nextId++;
+        public static final int test_integer2 = nextId++;
     }
 }

@@ -150,8 +150,23 @@ public class ShadowBundle {
     }
 
     @Implementation
+    public void putStringArrayList(String key, ArrayList<String> value) {
+        map.put(key, value);
+    }
+
+    @Implementation
     public ArrayList<String> getStringArrayList(String key) {
         return (ArrayList<String>) map.get(key);
+    }
+
+    @Implementation
+    public void putIntegerArrayList(String key, ArrayList<Integer> value) {
+        map.put(key, value);
+    }
+
+    @Implementation
+    public ArrayList<Integer> getIntegerArrayList(String key) {
+        return (ArrayList<Integer>) map.get(key);
     }
 
     @Implementation

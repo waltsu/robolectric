@@ -1,13 +1,15 @@
 package com.xtremelabs.robolectric.res;
 
 import android.content.Context;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.widget.FrameLayout;
 import com.xtremelabs.robolectric.tester.android.util.TestAttributeSet;
 import com.xtremelabs.robolectric.util.I18nException;
-
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -17,16 +19,14 @@ import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.xtremelabs.robolectric.Robolectric.shadowOf;
 
 public class ViewLoader extends XmlLoader {
     protected Map<String, ViewNode> viewNodesByLayoutName = new HashMap<String, ViewNode>();
     private AttrResourceLoader attrResourceLoader;
+    private List<String> qualifierSearchPath = new ArrayList<String>();
 
     public ViewLoader(ResourceExtractor resourceExtractor, AttrResourceLoader attrResourceLoader) {
         super(resourceExtractor);
@@ -37,7 +37,7 @@ public class ViewLoader extends XmlLoader {
     protected void processResourceXml(File xmlFile, Document document, boolean isSystem) throws Exception {
         ViewNode topLevelNode = new ViewNode("top-level", new HashMap<String, String>(), isSystem);
         processChildren(document.getChildNodes(), topLevelNode);
-        String layoutName = "layout/" + xmlFile.getName().replace(".xml", "");
+        String layoutName = xmlFile.getParentFile().getName() + "/" + xmlFile.getName().replace(".xml", "");
         if (isSystem) {
             layoutName = "android:" + layoutName;
         }
@@ -87,7 +87,7 @@ public class ViewLoader extends XmlLoader {
     }
 
     private View inflateView(Context context, String layoutName, Map<String, String> attributes, View parent) {
-        ViewNode viewNode = viewNodesByLayoutName.get(layoutName);
+        ViewNode viewNode = getViewNodeByLayoutName(layoutName);
         if (viewNode == null) {
             throw new RuntimeException("Could not find layout " + layoutName);
         }
@@ -101,10 +101,27 @@ public class ViewLoader extends XmlLoader {
             }
             return viewNode.inflate(context, parent);
         } catch (I18nException e) {
-        	throw e;
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("error inflating " + layoutName, e);
         }
+    }
+
+    private ViewNode getViewNodeByLayoutName(String layoutName) {
+        if (layoutName.startsWith("layout/") && !qualifierSearchPath.isEmpty()) {
+            String rawLayoutName = layoutName.substring("layout/".length());
+            for (String location : qualifierSearchPath) {
+                ViewNode foundNode = viewNodesByLayoutName.get("layout-" + location + "/" + rawLayoutName);
+                if (foundNode != null) {
+                    return foundNode;
+                }
+            }
+        }
+        return viewNodesByLayoutName.get(layoutName);
+    }
+
+    public void setLayoutQualifierSearchPath(String... locations) {
+        qualifierSearchPath = Arrays.asList(locations);
     }
 
     public class ViewNode {
@@ -153,6 +170,10 @@ public class ViewLoader extends XmlLoader {
                 return view;
             } else if (name.equals("merge")) {
                 return parent;
+            } else if (name.equals("fragment")) {
+                View fragment = constructFragment(context);
+                addToParent(parent, fragment);
+                return fragment;
             } else {
                 applyFocusOverride(parent);
                 View view = constructView(context);
@@ -160,6 +181,35 @@ public class ViewLoader extends XmlLoader {
                 shadowOf(view).applyFocus();
                 return view;
             }
+        }
+
+        private FrameLayout constructFragment(Context context) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
+            TestAttributeSet attributeSet = new TestAttributeSet(attributes, resourceExtractor, attrResourceLoader, View.class, isSystem);
+            if (strictI18n) {
+                attributeSet.validateStrictI18n();
+            }
+
+            Class<? extends Fragment> clazz = loadFragmentClass(attributes.get("android:name"));
+            Fragment fragment = ((Constructor<? extends Fragment>) clazz.getConstructor()).newInstance();
+            if (!(context instanceof FragmentActivity)) {
+                throw new RuntimeException("Cannot inflate a fragment unless the activity is a FragmentActivity");
+            }
+
+            FragmentActivity activity = (FragmentActivity) context;
+
+            String tag = attributeSet.getAttributeValue("android", "tag");
+            int id = attributeSet.getAttributeResourceValue("android", "id", 0);
+            // TODO: this should probably be changed to call TestFragmentManager.addFragment so that the
+            // inflated fragments don't get started twice (once in the commit, and once in ShadowFragmentActivity's
+            // onStart()
+            activity.getSupportFragmentManager().beginTransaction().add(id, fragment, tag).commit();
+
+            View view = fragment.getView();
+
+            FrameLayout container = new FrameLayout(context);
+            container.setId(id);
+            container.addView(view);
+            return container;
         }
 
         private void addToParent(ViewGroup parent, View view) {
@@ -172,8 +222,8 @@ public class ViewLoader extends XmlLoader {
             Class<? extends View> clazz = pickViewClass();
             try {
                 TestAttributeSet attributeSet = new TestAttributeSet(attributes, resourceExtractor, attrResourceLoader, clazz, isSystem);
-                if ( strictI18n ) {
-                	attributeSet.validateStrictI18n();
+                if (strictI18n) {
+                    attributeSet.validateStrictI18n();
                 }
                 return ((Constructor<? extends View>) clazz.getConstructor(Context.class, AttributeSet.class)).newInstance(context, attributeSet);
             } catch (NoSuchMethodException e) {
@@ -186,18 +236,18 @@ public class ViewLoader extends XmlLoader {
         }
 
         private Class<? extends View> pickViewClass() {
-            Class<? extends View> clazz = loadClass(name);
+            Class<? extends View> clazz = loadViewClass(name);
             if (clazz == null) {
-                clazz = loadClass("android.view." + name);
+                clazz = loadViewClass("android.view." + name);
             }
             if (clazz == null) {
-                clazz = loadClass("android.widget." + name);
+                clazz = loadViewClass("android.widget." + name);
             }
             if (clazz == null) {
-                clazz = loadClass("android.webkit." + name);
+                clazz = loadViewClass("android.webkit." + name);
             }
             if (clazz == null) {
-                clazz = loadClass("com.google.android.maps." + name);
+                clazz = loadViewClass("com.google.android.maps." + name);
             }
 
             if (clazz == null) {
@@ -206,13 +256,22 @@ public class ViewLoader extends XmlLoader {
             return clazz;
         }
 
-        private Class<? extends View> loadClass(String className) {
+        private Class loadClass(String className) {
             try {
-                //noinspection unchecked
-                return (Class<? extends View>) getClass().getClassLoader().loadClass(className);
+                return getClass().getClassLoader().loadClass(className);
             } catch (ClassNotFoundException e) {
                 return null;
             }
+        }
+
+        private Class<? extends View> loadViewClass(String className) {
+            // noinspection unchecked
+            return (Class<? extends View>) loadClass(className);
+        }
+
+        private Class<? extends Fragment> loadFragmentClass(String className) {
+            // noinspection unchecked
+            return (Class<? extends Fragment>) loadClass(className);
         }
 
         public void applyFocusOverride(ViewParent parent) {

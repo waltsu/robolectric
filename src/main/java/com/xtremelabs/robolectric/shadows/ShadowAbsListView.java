@@ -8,6 +8,7 @@ import com.xtremelabs.robolectric.internal.Implements;
 public class ShadowAbsListView extends ShadowAdapterView {
     private AbsListView.OnScrollListener onScrollListener;
     private int choiceMode;
+    private int smoothScrolledPosition;
 
     @Implementation
     public void setOnScrollListener(AbsListView.OnScrollListener l) {
@@ -23,6 +24,11 @@ public class ShadowAbsListView extends ShadowAdapterView {
     public int getChoiceMode() {
     	return choiceMode;
     }
+    
+    @Implementation
+    public void smoothScrollToPosition(int position) {
+        smoothScrolledPosition = position;
+    }
 
     /**
      * Robolectric accessor for the onScrollListener
@@ -31,5 +37,14 @@ public class ShadowAbsListView extends ShadowAdapterView {
      */
     public AbsListView.OnScrollListener getOnScrollListener() {
         return onScrollListener;
+    }
+    
+    /**
+     * Robolectric accessor for the last smoothScrolledPosition
+     *
+     * @return int position
+     */
+    public int getSmoothScrolledPosition() {
+        return smoothScrolledPosition;
     }
 }
