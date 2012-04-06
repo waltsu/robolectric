@@ -226,8 +226,7 @@ public class ShadowActivity extends ShadowContextWrapper {
     
     @Implementation
     public SharedPreferences getPreferences(int mode) {
-    	SharedPreferences sharedPref = ShadowPreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-    	return sharedPref;
+    	return ShadowPreferenceManager.getDefaultSharedPreferences(getApplicationContext());
     }
 
     /**
