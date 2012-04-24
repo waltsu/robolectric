@@ -43,12 +43,7 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.LayerDrawable;
-import android.graphics.drawable.ShapeDrawable;
-import android.graphics.drawable.StateListDrawable;
+import android.graphics.drawable.*;
 import android.hardware.Camera;
 import android.hardware.SensorManager;
 import android.location.Address;
@@ -71,6 +66,7 @@ import android.os.Looper;
 import android.os.Parcel;
 import android.os.PowerManager;
 import android.os.ResultReceiver;
+import android.os.Vibrator;
 import android.preference.DialogPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
@@ -339,6 +335,7 @@ public class Robolectric {
                 ShadowPointF.class,
                 ShadowPopupWindow.class,
                 ShadowPowerManager.class,
+                ShadowPowerManager.ShadowWakeLock.class,
                 ShadowPreference.class,
                 ShadowPreferenceActivity.class,
                 ShadowPreferenceCategory.class,
@@ -397,6 +394,7 @@ public class Robolectric {
                 ShadowTypedValue.class,
                 ShadowUriMatcher.class,
                 ShadowURLSpan.class,
+                ShadowVibrator.class,
                 ShadowVideoView.class,
                 ShadowView.class,
                 ShadowViewAnimator.class,
@@ -412,6 +410,7 @@ public class Robolectric {
                 ShadowWifiConfiguration.class,
                 ShadowWifiInfo.class,
                 ShadowWifiManager.class,
+                ShadowWifiManager.ShadowWifiLock.class,
                 ShadowWindow.class,
                 ShadowZoomButtonsController.class
         );
@@ -428,6 +427,7 @@ public class Robolectric {
         ShadowLooper.resetThreadLoopers();
         ShadowDialog.reset();
         ShadowContentResolver.reset();
+        ShadowLocalBroadcastManager.reset();
     }
 
     public static <T> T directlyOn(T shadowedObject) {
@@ -472,6 +472,10 @@ public class Robolectric {
 
     public static ShadowAnimation shadowOf(Animation instance) {
         return (ShadowAnimation) shadowOf_(instance);
+    }
+
+    public static ShadowAnimationDrawable shadowOf(AnimationDrawable instance) {
+        return (ShadowAnimationDrawable) shadowOf_(instance);
     }
 
     public static ShadowAnimationUtils shadowOf(AnimationUtils instance) {
@@ -601,7 +605,7 @@ public class Robolectric {
     public static ShadowCursorAdapter shadowOf(CursorAdapter instance) {
         return (ShadowCursorAdapter) shadowOf_(instance);
     }
-    
+
     public static ShadowCursorLoader shadowOf(CursorLoader instance) {
         return (ShadowCursorLoader) shadowOf_(instance);
     }
@@ -983,6 +987,10 @@ public class Robolectric {
         return (ShadowViewGroup) shadowOf_(instance);
     }
 
+    public static ShadowVibrator shadowOf(Vibrator instance) {
+        return (ShadowVibrator) shadowOf_(instance);
+    }
+
     public static ShadowVideoView shadowOf(VideoView instance) {
         return (ShadowVideoView) shadowOf_(instance);
     }
@@ -1272,7 +1280,7 @@ public class Robolectric {
 
         public static void setFinalStaticField(Class classWhichContainsField, String fieldName, Object newValue) {
             try {
-                Field field = classWhichContainsField.getField(fieldName);
+                Field field = classWhichContainsField.getDeclaredField(fieldName);
                 field.setAccessible(true);
 
                 Field modifiersField = Field.class.getDeclaredField("modifiers");
