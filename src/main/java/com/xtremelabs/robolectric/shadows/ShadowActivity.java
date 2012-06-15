@@ -32,7 +32,8 @@ public class ShadowActivity extends ShadowContextWrapper {
     protected Activity realActivity;
 
     private Intent intent;
-    View contentView;
+    private FrameLayout contentViewContainer;
+    private View contentView;
     private int orientation;
     private int resultCode;
     private Intent resultIntent;
@@ -138,6 +139,9 @@ public class ShadowActivity extends ShadowContextWrapper {
      */
     @Implementation
     public View findViewById(int id) {
+        if (id == android.R.id.content) {
+            return getContentViewContainer();
+        }
         if (contentView != null) {
             return contentView.findViewById(id);
         } else {
@@ -145,6 +149,14 @@ public class ShadowActivity extends ShadowContextWrapper {
             Thread.dumpStack();
             return null;
         }
+    }
+
+    private View getContentViewContainer() {
+        if (contentViewContainer == null) {
+            contentViewContainer = new FrameLayout(realActivity);
+        }
+        contentViewContainer.addView(contentView, 0);
+        return contentViewContainer;
     }
 
     @Implementation
@@ -223,7 +235,7 @@ public class ShadowActivity extends ShadowContextWrapper {
     public int getRequestedOrientation() {
         return requestedOrientation;
     }
-    
+
     @Implementation
     public SharedPreferences getPreferences(int mode) {
     	return ShadowPreferenceManager.getDefaultSharedPreferences(getApplicationContext());
@@ -364,17 +376,10 @@ public class ShadowActivity extends ShadowContextWrapper {
         if (requestCode == null) {
             throw new RuntimeException("No intent matches " + requestIntent + " among " + intentRequestCodeMap.keySet());
         }
-        try {
-            Method method = Activity.class.getDeclaredMethod("onActivityResult", Integer.TYPE, Integer.TYPE, Intent.class);
-            method.setAccessible(true);
-            method.invoke(realActivity, requestCode, resultCode, resultIntent);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
+
+        final ActivityInvoker invoker = new ActivityInvoker();
+        invoker.call("onActivityResult", Integer.TYPE, Integer.TYPE, Intent.class)
+            .with(requestCode, resultCode, resultIntent);
     }
 
     @Implementation
@@ -405,26 +410,15 @@ public class ShadowActivity extends ShadowContextWrapper {
         dialog = dialogForId.get(id);
 
         if (dialog == null) {
-            try {
-                Method method = Activity.class.getDeclaredMethod("onCreateDialog", Integer.TYPE);
-                method.setAccessible(true);
-                dialog = (Dialog) method.invoke(realActivity, id);
+            final ActivityInvoker invoker = new ActivityInvoker();
+            dialog = (Dialog) invoker.call("onCreateDialog", Integer.TYPE).with(id);
 
-                if (bundle == null) {
-                    method = Activity.class.getDeclaredMethod("onPrepareDialog", Integer.TYPE, Dialog.class);
-                    method.setAccessible(true);
-                    method.invoke(realActivity, id, dialog);
-                } else {
-                    method = Activity.class.getDeclaredMethod("onPrepareDialog", Integer.TYPE, Dialog.class, Bundle.class);
-                    method.setAccessible(true);
-                    method.invoke(realActivity, id, dialog, bundle);
-                }
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException(e);
-            } catch (InvocationTargetException e) {
-                throw new RuntimeException(e);
-            } catch (NoSuchMethodException e) {
-                throw new RuntimeException(e);
+            if (bundle == null) {
+                invoker.call("onPrepareDialog", Integer.TYPE, Dialog.class)
+                    .with(id, dialog);
+            } else {
+                invoker.call("onPrepareDialog", Integer.TYPE, Dialog.class, Bundle.class)
+                    .with(id, dialog, bundle);
             }
 
             dialogForId.put(id, dialog);
@@ -457,5 +451,63 @@ public class ShadowActivity extends ShadowContextWrapper {
 
     public Dialog getDialogById(int dialogId) {
         return dialogForId.get(dialogId);
+    }
+
+    public void create() {
+        final ActivityInvoker invoker = new ActivityInvoker();
+
+        final Bundle noInstanceState = null;
+        invoker.call("onCreate", Bundle.class).with(noInstanceState);
+        invoker.call("onStart").withNothing();
+        invoker.call("onPostCreate", Bundle.class).with(noInstanceState);
+        invoker.call("onResume").withNothing();
+    }
+
+    public void recreate() {
+        Bundle outState = new Bundle();
+        final ActivityInvoker invoker = new ActivityInvoker();
+
+        invoker.call("onSaveInstanceState", Bundle.class).with(outState);
+        invoker.call("onPause").withNothing();
+        invoker.call("onStop").withNothing();
+
+        Object nonConfigInstance = invoker.call("onRetainNonConfigurationInstance").withNothing();
+        setLastNonConfigurationInstance(nonConfigInstance);
+
+        invoker.call("onDestroy").withNothing();
+        invoker.call("onCreate", Bundle.class).with(outState);
+        invoker.call("onStart").withNothing();
+        invoker.call("onRestoreInstanceState", Bundle.class).with(outState);
+        invoker.call("onResume").withNothing();
+    }
+
+    private final class ActivityInvoker {
+        private Method method;
+
+        public ActivityInvoker call(final String methodName, final Class ...argumentClasses) {
+            try {
+                method = Activity.class.getDeclaredMethod(methodName, argumentClasses);
+                method.setAccessible(true);
+                return this;
+            } catch(NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public Object withNothing() {
+            return with();
+        }
+
+        public Object with(final Object ...parameters) {
+            try {
+                return method.invoke(realActivity, parameters);
+            } catch(IllegalAccessException e) {
+                throw new RuntimeException(e);
+            } catch(IllegalArgumentException e) {
+                throw new RuntimeException(e);
+            } catch(InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

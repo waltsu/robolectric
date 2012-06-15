@@ -4,10 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Point;
 import android.graphics.drawable.ColorDrawable;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
+import android.view.*;
+import android.view.View.MeasureSpec;
 import android.view.animation.Animation;
 import android.widget.LinearLayout;
 import com.xtremelabs.robolectric.R;
@@ -21,6 +19,7 @@ import org.junit.runner.RunWith;
 import static com.xtremelabs.robolectric.Robolectric.shadowOf;
 import static junit.framework.Assert.assertEquals;
 import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.*;
 
 @RunWith(WithTestDefaultsRunner.class)
@@ -114,7 +113,6 @@ public class ViewTest {
 
         assertTrue(clickListener.clicked);
     }
-
 
     @Test
     public void checkedClick_shouldClickOnView() throws Exception {
@@ -238,13 +236,22 @@ public class ViewTest {
         assertThat(listener.wasRepeatCalled, equalTo(false));
         assertThat(listener.wasEndCalled, equalTo(true));
     }
-    
+
     @Test
-    public void shouldfindViewWithTag() {
-    	String tagged = "tagged";
-    	String tagged2 = "tagged";
-    	view.setTag(tagged);
-    	assertThat(view.findViewWithTag(tagged2),sameInstance(view));
+    public void shouldFindViewWithTag() {
+        view.setTag("tagged");
+        assertThat(view.findViewWithTag("tagged"), sameInstance(view));
+    }
+
+    @Test
+    public void shouldFindViewWithTag_whenViewOverridesGetTag() throws Exception {
+        View view = new View(Robolectric.application) {
+            @Override
+            public Object getTag() {
+                return "blarg";
+            }
+        };
+        assertThat(view.findViewWithTag("blarg"), sameInstance(view));
     }
 
     @Test
@@ -325,6 +332,44 @@ public class ViewTest {
         shadowOf(view1).finishedAnimation();
         assertTrue(view1.onAnimationEndWasCalled);
     }
+    
+    @Test
+    public void test_measuredDimension() {
+    	// View does not provide its own onMeasure implementation
+    	TestView view1 = new TestView(new Activity());
+
+    	assertThat(view1.getHeight(), equalTo(0));
+    	assertThat(view1.getWidth(), equalTo(0)); 
+    	assertThat(view1.getMeasuredHeight(), equalTo(0));
+    	assertThat(view1.getMeasuredWidth(), equalTo(0));    
+    	
+    	view1.measure( MeasureSpec.makeMeasureSpec(150, MeasureSpec.AT_MOST),
+    				   MeasureSpec.makeMeasureSpec(300, MeasureSpec.AT_MOST) );
+    	
+    	assertThat(view1.getHeight(), equalTo(0));
+    	assertThat(view1.getWidth(), equalTo(0)); 
+    	assertThat(view1.getMeasuredHeight(), equalTo(300));
+    	assertThat(view1.getMeasuredWidth(), equalTo(150));  
+    }
+    
+    @Test
+    public void test_measuredDimensionCustomView() {
+       	// View provides its own onMeasure implementation
+    	TestView2 view2 = new TestView2(new Activity());
+
+    	assertThat(view2.getHeight(), equalTo(0));
+    	assertThat(view2.getWidth(), equalTo(0)); 
+    	assertThat(view2.getMeasuredHeight(), equalTo(0));
+    	assertThat(view2.getMeasuredWidth(), equalTo(0));    
+    	
+    	view2.measure( MeasureSpec.makeMeasureSpec(1000, MeasureSpec.AT_MOST),
+    				   MeasureSpec.makeMeasureSpec(600, MeasureSpec.AT_MOST) );
+    	
+    	assertThat(view2.getHeight(), equalTo(0));
+    	assertThat(view2.getWidth(), equalTo(0)); 
+    	assertThat(view2.getMeasuredHeight(), equalTo(400));
+    	assertThat(view2.getMeasuredWidth(), equalTo(800));  
+    }
 
     private static class TestAnimation extends Animation {
     }
@@ -355,5 +400,16 @@ public class ViewTest {
             super.onAnimationEnd();
             onAnimationEndWasCalled = true;
         }
+    }
+    
+    private static class TestView2 extends View {
+    	public TestView2(Context context) {
+            super(context);
+        }
+
+		@Override
+		protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+			super.onMeasure(800, 400);
+		}
     }
 }

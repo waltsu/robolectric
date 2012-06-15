@@ -22,6 +22,7 @@ public class RobolectricPackageManager extends StubPackageManager {
     private Map<Intent, List<ResolveInfo>> resolveList = new HashMap<Intent, List<ResolveInfo>>();
     private Map<ComponentName, ComponentState> componentList = new HashMap<ComponentName,ComponentState>();
     private Map<ComponentName, Drawable> drawableList = new HashMap<ComponentName, Drawable>();
+    private Map<String, Boolean> systemFeatureList = new HashMap<String, Boolean>();
 
     private ContextWrapper contextWrapper;
     private RobolectricConfig config;
@@ -52,6 +53,7 @@ public class RobolectricPackageManager extends StubPackageManager {
                 applicationInfo.targetSdkVersion = config.getSdkVersion();
                 applicationInfo.packageName = config.getPackageName();
                 applicationInfo.processName = config.getProcessName();
+                applicationInfo.name = config.getApplicationName();
             }
             return applicationInfo;
         }
@@ -145,7 +147,23 @@ public class RobolectricPackageManager extends StubPackageManager {
     	PackageInfo info = new PackageInfo();
     	info.packageName = packageName;
     	addPackage( info );
-    }    
+    }  
+    
+    @Override
+    public boolean hasSystemFeature(String name) {
+        return systemFeatureList.containsKey(name) ? systemFeatureList.get(name) : false;
+    }
+    
+    /**
+     * Non-Android accessor.  Used to declare a system feature is
+     * or is not supported.
+     * 
+     * @param name
+     * @param supported
+     */
+    public void setSystemFeature(String name, boolean supported) {
+    	systemFeatureList.put(name, supported);
+    }
     
     private void initializePackageInfo() {
     	if (packageList != null) { return; }
