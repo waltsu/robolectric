@@ -2,7 +2,13 @@ package com.xtremelabs.robolectric.shadows;
 
 import android.app.Application;
 import android.appwidget.AppWidgetManager;
-import android.content.*;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.ContentResolver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.res.Resources;
 import android.os.IBinder;
 import android.os.Looper;
@@ -16,7 +22,11 @@ import com.xtremelabs.robolectric.res.ResourceLoader;
 import com.xtremelabs.robolectric.tester.org.apache.http.FakeHttpLayer;
 import com.xtremelabs.robolectric.util.Scheduler;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import static com.xtremelabs.robolectric.Robolectric.newInstanceOf;
 import static com.xtremelabs.robolectric.Robolectric.shadowOf;
@@ -30,15 +40,15 @@ public class ShadowApplication extends ShadowContextWrapper {
     private static final Map<String, String> SYSTEM_SERVICE_MAP = new HashMap<String, String>();
 
     static {
-        // note that this one is different!
+        // note that these are different!
         SYSTEM_SERVICE_MAP.put(Context.WINDOW_SERVICE, "com.xtremelabs.robolectric.tester.android.view.TestWindowManager");
+        SYSTEM_SERVICE_MAP.put(Context.CLIPBOARD_SERVICE, "com.xtremelabs.robolectric.tester.android.text.TestClipboardManager");
 
         // the rest are as mapped in docs...
         SYSTEM_SERVICE_MAP.put(Context.LAYOUT_INFLATER_SERVICE, "android.view.LayoutInflater");
         SYSTEM_SERVICE_MAP.put(Context.ACTIVITY_SERVICE, "android.app.ActivityManager");
         SYSTEM_SERVICE_MAP.put(Context.POWER_SERVICE, "android.os.PowerManager");
         SYSTEM_SERVICE_MAP.put(Context.ALARM_SERVICE, "android.app.AlarmManager");
-        SYSTEM_SERVICE_MAP.put(Context.CLIPBOARD_SERVICE, "android.text.ClipboardManager");
         SYSTEM_SERVICE_MAP.put(Context.NOTIFICATION_SERVICE, "android.app.NotificationManager");
         SYSTEM_SERVICE_MAP.put(Context.KEYGUARD_SERVICE, "android.app.KeyguardManager");
         SYSTEM_SERVICE_MAP.put(Context.LOCATION_SERVICE, "android.location.LocationManager");
@@ -414,6 +424,25 @@ public class ShadowApplication extends ShadowContextWrapper {
                 }
             }
         }
+    }
+
+    public boolean hasReceiverForIntent(Intent intent) {
+        for (Wrapper wrapper : registeredReceivers) {
+            if (wrapper.intentFilter.matchAction(intent.getAction())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public List<BroadcastReceiver> getReceiversForIntent(Intent intent) {
+        ArrayList<BroadcastReceiver> broadcastReceivers = new ArrayList<BroadcastReceiver>();
+        for (Wrapper wrapper : registeredReceivers) {
+            if (wrapper.intentFilter.matchAction(intent.getAction())) {
+                broadcastReceivers.add(wrapper.getBroadcastReceiver());
+            }
+        }
+        return broadcastReceivers;
     }
 
     /**

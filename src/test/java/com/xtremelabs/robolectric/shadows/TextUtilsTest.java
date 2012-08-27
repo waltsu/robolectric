@@ -3,11 +3,12 @@ package com.xtremelabs.robolectric.shadows;
 import android.text.TextUtils;
 import com.xtremelabs.robolectric.WithTestDefaultsRunner;
 import java.util.Arrays;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
 
 @RunWith(WithTestDefaultsRunner.class)
 public class TextUtilsTest {
@@ -31,4 +32,25 @@ public class TextUtilsTest {
       assertThat(TextUtils.join(",", new String[] { "1", "2", "3" }), equalTo("1,2,3"));
       assertThat(TextUtils.join(",", Arrays.asList("1", "2", "3")), equalTo("1,2,3"));
     }
+
+    @Test
+    public void testIsDigitsOnly() throws Exception {
+        assertThat(TextUtils.isDigitsOnly("123456"), equalTo(true));
+        assertThat(TextUtils.isDigitsOnly("124a56"), equalTo(false));
+    }
+    
+    @Test
+    public void testSplit() {
+    	//empty
+    	assertThat(TextUtils.split("", ",").length, equalTo(0));
+    	
+    	//one value
+    	assertArrayEquals(TextUtils.split("abc", ","), new String[]{"abc"});
+    	
+    	//two values
+    	assertArrayEquals(TextUtils.split("abc,def", ","), new String[]{"abc", "def"});
+    	
+    	//two values with space
+    	assertArrayEquals(TextUtils.split("abc, def", ","), new String[]{"abc", " def"});
+   }
 }

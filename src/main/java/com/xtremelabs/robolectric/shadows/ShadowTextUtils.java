@@ -35,4 +35,24 @@ public class ShadowTextUtils {
     public static String join(CharSequence delimiter, Object[] tokens) {
         return Join.join((String) delimiter, tokens);
     }
+
+    @Implementation
+    public static boolean isDigitsOnly(CharSequence str) {
+        final int len = str.length();
+        for (int i = 0; i < len; i++) {
+          if (!Character.isDigit(str.charAt(i))) {
+            return false;
+          }
+        }
+        return true;
+    }
+    
+    @Implementation
+    public static String[] split(String text, String expression) {
+    	if(text.length() == 0) {
+    		return new String[]{};
+    	}
+    	
+    	return text.split(expression);
+    }
 }
