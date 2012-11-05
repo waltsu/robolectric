@@ -18,6 +18,7 @@ import java.util.Set;
 
 import static com.xtremelabs.robolectric.Robolectric.shadowOf;
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -29,6 +30,13 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(WithTestDefaultsRunner.class)
 public class IntentTest {
+
+    @Test
+    public void testGetExtraReturnsNull_whenThereAreNoExtrasAdded() throws Exception {
+        Intent intent = new Intent();
+        assertEquals(intent.getExtras(), null);
+    }
+
     @Test
     public void testStringExtra() throws Exception {
         Intent intent = new Intent();
@@ -174,8 +182,28 @@ public class IntentTest {
     public void testSetData() throws Exception {
         Intent intent = new Intent();
         Uri uri = Uri.parse("content://this/and/that");
+        intent.setType("abc");
         assertSame(intent, intent.setData(uri));
         assertSame(uri, intent.getData());
+        assertNull(intent.getType());
+    }
+
+    @Test
+    public void testSetType() throws Exception {
+        Intent intent = new Intent();
+        intent.setData(Uri.parse("content://this/and/that"));
+        assertSame(intent, intent.setType("def"));
+        assertNull(intent.getData());
+        assertEquals("def", intent.getType());
+    }
+
+    @Test
+    public void testSetDataAndType() throws Exception {
+        Intent intent = new Intent();
+        Uri uri = Uri.parse("content://this/and/that");
+        assertSame(intent, intent.setDataAndType(uri, "ghi"));
+        assertSame(uri, intent.getData());
+        assertEquals("ghi", intent.getType());
     }
 
     @Test
@@ -263,8 +291,7 @@ public class IntentTest {
 
         intentB.setAction("foo");
         Uri uri = Uri.parse("http://www.foo.com");
-        intentB.setData(uri);
-        intentB.setType("text/html");
+        intentB.setDataAndType(uri, "text/html");
         String category = "category";
         intentB.addCategory(category);
         intentB.setPackage("com.foobar.app");
