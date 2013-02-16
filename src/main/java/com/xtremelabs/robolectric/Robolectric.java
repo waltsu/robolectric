@@ -1,7 +1,12 @@
 package com.xtremelabs.robolectric;
 
 import android.accounts.AccountManager;
+import android.animation.Animator;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.app.*;
+import android.appwidget.AppWidgetHost;
+import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -11,6 +16,7 @@ import android.content.res.AssetManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.database.ContentObserver;
 import android.database.CursorWrapper;
 import android.database.MergeCursor;
 import android.database.sqlite.*;
@@ -43,6 +49,7 @@ import android.telephony.PhoneNumberUtils;
 import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.text.ClipboardManager;
+import android.text.SpannableStringBuilder;
 import android.text.TextPaint;
 import android.text.format.DateFormat;
 import android.text.method.PasswordTransformationMethod;
@@ -140,11 +147,14 @@ public class Robolectric {
                 ShadowAlphaAnimation.class,
                 ShadowAndroidHttpClient.class,
                 ShadowAnimation.class,
-                ShadowAnimator.class,
                 ShadowAnimationDrawable.class,
                 ShadowAnimationSet.class,
                 ShadowAnimationUtils.class,
+                ShadowAnimator.class,
+                ShadowAnimatorSet.class,
                 ShadowApplication.class,
+                ShadowAppWidgetHost.class,
+                ShadowAppWidgetHostView.class,
                 ShadowAppWidgetManager.class,
                 ShadowArrayAdapter.class,
                 ShadowAssetManager.class,
@@ -175,6 +185,7 @@ public class Robolectric {
                 ShadowCompoundButton.class,
                 ShadowConfiguration.class,
                 ShadowConnectivityManager.class,
+                ShadowContentObserver.class,
                 ShadowContentProvider.class,
                 ShadowContentProviderOperation.class,
                 ShadowContentProviderOperationBuilder.class,
@@ -227,6 +238,7 @@ public class Robolectric {
                 ShadowIntentFilter.class,
                 ShadowIntentFilterAuthorityEntry.class,
                 ShadowItemizedOverlay.class,
+                ShadowLayoutAnimationController.class,
                 ShadowJsPromptResult.class,
                 ShadowJsResult.class,
                 ShadowKeyEvent.class,
@@ -387,7 +399,9 @@ public class Robolectric {
         ShadowContentResolver.reset();
         ShadowLocalBroadcastManager.reset();
         ShadowMimeTypeMap.reset();
+        ShadowPowerManager.reset();
         ShadowStatFs.reset();
+        ShadowTypeface.reset();
     }
 
     public static <T> T directlyOn(T shadowedObject) {
@@ -413,7 +427,7 @@ public class Robolectric {
     public static ShadowAccountManager shadowOf(AccountManager instance) {
         return (ShadowAccountManager) shadowOf_(instance);
     }
-    
+
     public static ShadowActivity shadowOf(Activity instance) {
         return (ShadowActivity) shadowOf_(instance);
     }
@@ -450,6 +464,10 @@ public class Robolectric {
         return (ShadowAnimation) shadowOf_(instance);
     }
 
+    public static ShadowLayoutAnimationController shadowOf(LayoutAnimationController instance) {
+        return (ShadowLayoutAnimationController) shadowOf_(instance);
+    }
+
     public static ShadowAnimationDrawable shadowOf(AnimationDrawable instance) {
         return (ShadowAnimationDrawable) shadowOf_(instance);
     }
@@ -457,13 +475,29 @@ public class Robolectric {
     public static ShadowAnimationSet shadowOf(AnimationSet instance) {
         return (ShadowAnimationSet) shadowOf_(instance);
     }
-    
+
     public static ShadowAnimationUtils shadowOf(AnimationUtils instance) {
         return (ShadowAnimationUtils) shadowOf_(instance);
     }
 
+    public static ShadowAnimator shadowOf(Animator instance) {
+        return (ShadowAnimator) shadowOf_(instance);
+    }
+
+    public static ShadowAnimatorSet shadowOf(AnimatorSet instance) {
+        return (ShadowAnimatorSet) shadowOf_(instance);
+    }
+
     public static ShadowApplication shadowOf(Application instance) {
         return (ShadowApplication) shadowOf_(instance);
+    }
+
+    public static ShadowAppWidgetHost shadowOf(AppWidgetHost instance) {
+        return (ShadowAppWidgetHost) shadowOf_(instance);
+    }
+
+    public static ShadowAppWidgetHostView shadowOf(AppWidgetHostView instance) {
+        return (ShadowAppWidgetHostView) shadowOf_(instance);
     }
 
     public static ShadowAppWidgetManager shadowOf(AppWidgetManager instance) {
@@ -477,10 +511,10 @@ public class Robolectric {
     public static ShadowAssetManager shadowOf(AssetManager instance) {
         return (ShadowAssetManager) Robolectric.shadowOf_(instance);
     }
-    
+
     @SuppressWarnings("rawtypes")
 	public static ShadowAsyncTask shadowOf(AsyncTask instance){
-    	return (ShadowAsyncTask) Robolectric.shadowOf_( instance );
+    	return (ShadowAsyncTask) Robolectric.shadowOf_(instance);
     }
 
     public static ShadowAudioManager shadowOf(AudioManager instance) {
@@ -559,6 +593,10 @@ public class Robolectric {
         return (ShadowCookieManager) shadowOf_(instance);
     }
 
+    public static ShadowContentObserver shadowOf(ContentObserver instance) {
+        return (ShadowContentObserver) shadowOf_(instance);
+    }
+
     public static ShadowContentResolver shadowOf(ContentResolver instance) {
         return (ShadowContentResolver) shadowOf_(instance);
     }
@@ -632,7 +670,7 @@ public class Robolectric {
     }
 
     public static ShadowEditTextPreference shadowOf(EditTextPreference instance) {
-    	return (ShadowEditTextPreference) shadowOf_(instance);
+        return (ShadowEditTextPreference) shadowOf_(instance);
     }
 
     public static ShadowDrawable shadowOf(Drawable instance) {
@@ -735,6 +773,10 @@ public class Robolectric {
         return (ShadowLayoutInflater) shadowOf_(instance);
     }
 
+    public static ShadowLinearLayout shadowOf(LinearLayout instance) {
+        return (ShadowLinearLayout) shadowOf_(instance);
+    }
+
     public static ShadowLinearGradient shadowOf(LinearGradient instance) {
         return (ShadowLinearGradient) shadowOf_(instance);
     }
@@ -778,7 +820,7 @@ public class Robolectric {
     public static ShadowMergeCursor shadowOf(MergeCursor instance) {
         return (ShadowMergeCursor) shadowOf_(instance);
     }
-    
+
     public static ShadowMessage shadowOf(Message instance) {
         return (ShadowMessage) shadowOf_(instance);
     }
@@ -801,6 +843,10 @@ public class Robolectric {
 
     public static ShadowNotificationManager shadowOf(NotificationManager other) {
         return (ShadowNotificationManager) Robolectric.shadowOf_(other);
+    }
+
+    public static ShadowObjectAnimator shadowOf(ObjectAnimator instance) {
+        return (ShadowObjectAnimator) shadowOf_(instance);
     }
 
     public static ShadowPagerAdapter shadowOf(PagerAdapter instance) {
@@ -935,6 +981,10 @@ public class Robolectric {
         return (ShadowSmsManager) shadowOf_(instance);
     }
 
+    public static ShadowSpannableStringBuilder shadowOf(SpannableStringBuilder instance) {
+        return (ShadowSpannableStringBuilder) shadowOf_(instance);
+    }
+
     public static <E> ShadowSparseArray<E> shadowOf(SparseArray<E> other) {
         //noinspection unchecked
         return (ShadowSparseArray<E>) Robolectric.shadowOf_(other);
@@ -943,9 +993,9 @@ public class Robolectric {
     public static ShadowSparseBooleanArray shadowOf(SparseBooleanArray other) {
         return (ShadowSparseBooleanArray) Robolectric.shadowOf_(other);
     }
-    
-    public static ShadowSparseIntArray shadowOf(SparseIntArray other){
-    	return (ShadowSparseIntArray) Robolectric.shadowOf_( other );
+
+    public static ShadowSparseIntArray shadowOf(SparseIntArray other) {
+        return (ShadowSparseIntArray) Robolectric.shadowOf_(other);
     }
 
     public static ShadowSQLiteCursor shadowOf(SQLiteCursor other) {
@@ -1004,10 +1054,10 @@ public class Robolectric {
         return (ShadowToast) shadowOf_(instance);
     }
 
-    public static ShadowTouchDelegate shadowOf( TouchDelegate instance ){
-    	return (ShadowTouchDelegate) shadowOf_(instance);
+    public static ShadowTouchDelegate shadowOf(TouchDelegate instance) {
+        return (ShadowTouchDelegate) shadowOf_(instance);
     }
-    
+
     public static ShadowTranslateAnimation shadowOf(TranslateAnimation instance) {
         return (ShadowTranslateAnimation) shadowOf_(instance);
     }
@@ -1074,6 +1124,10 @@ public class Robolectric {
 
     public static ShadowWifiManager shadowOf(WifiManager instance) {
         return (ShadowWifiManager) shadowOf_(instance);
+    }
+
+    public static ShadowWindow shadowOf(Window instance) {
+        return (ShadowWindow) shadowOf_(instance);
     }
 
     public static ShadowZoomButtonsController shadowOf(ZoomButtonsController instance) {
@@ -1281,6 +1335,10 @@ public class Robolectric {
         ShadowLooper.idleMainLooper(interval);
     }
 
+    public static void idleMainLooperConstantly(boolean shouldIdleConstantly) {
+        ShadowLooper.idleMainLooperConstantly(shouldIdleConstantly);
+    }
+
     public static Scheduler getUiThreadScheduler() {
         return shadowOf(Looper.getMainLooper()).getScheduler();
     }
@@ -1378,27 +1436,27 @@ public class Robolectric {
                 setFinalStaticField(field, newValue);
             } catch (NoSuchFieldException e) {
                 throw new RuntimeException(e);
-            } 
+            }
         }
 
         public static Object setFinalStaticField(Field field, Object newValue) {
-        	Object oldValue = null;
-        	
+            Object oldValue = null;
+
             try {
-            	field.setAccessible(true);
+                field.setAccessible(true);
 
                 Field modifiersField = Field.class.getDeclaredField("modifiers");
                 modifiersField.setAccessible(true);
                 modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
 
-               oldValue = field.get(null);
-               field.set(null, newValue);
+                oldValue = field.get(null);
+                field.set(null, newValue);
             } catch (NoSuchFieldException e) {
                 throw new RuntimeException(e);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
-            
+
             return oldValue;
         }
     }

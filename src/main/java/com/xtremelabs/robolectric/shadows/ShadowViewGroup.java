@@ -1,14 +1,15 @@
 package com.xtremelabs.robolectric.shadows;
 
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation.AnimationListener;
+import android.view.animation.LayoutAnimationController;
 import com.xtremelabs.robolectric.internal.Implementation;
 import com.xtremelabs.robolectric.internal.Implements;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.List;
 
 import static com.xtremelabs.robolectric.Robolectric.shadowOf;
 
@@ -18,9 +19,12 @@ import static com.xtremelabs.robolectric.Robolectric.shadowOf;
 @SuppressWarnings({"UnusedDeclaration"})
 @Implements(ViewGroup.class)
 public class ShadowViewGroup extends ShadowView {
-    private List<View> children = new ArrayList<View>();
+    private ArrayList<View> children = new ArrayList<View>();
     private AnimationListener animListener;
+    private LayoutAnimationController layoutAnim;
     private boolean disallowInterceptTouchEvent = false;
+    private MotionEvent interceptedTouchEvent;
+    private ViewGroup.OnHierarchyChangeListener onHierarchyChangeListener;
 
     @Implementation
     @Override
@@ -57,7 +61,12 @@ public class ShadowViewGroup extends ShadowView {
 
     @Implementation
     public void addView(View child) {
+        if (child.getParent() != null) {
+            throw new IllegalStateException("The specified child already has a parent. You must call removeView() " +
+                    "on the child's parent first.");
+        }
         ((ViewGroup) realView).addView(child, -1);
+        requestLayout();
     }
 
     @Implementation
@@ -68,6 +77,7 @@ public class ShadowViewGroup extends ShadowView {
             children.add(index, child);
         }
         shadowOf(child).parent = this;
+        requestLayout();
     }
 
     @Implementation
@@ -104,7 +114,9 @@ public class ShadowViewGroup extends ShadowView {
 
     @Implementation
     public View getChildAt(int index) {
-    	if( index >= children.size() ){ return null; }
+        if (index >= children.size()) {
+            return null;
+        }
         return children.get(index);
     }
 
@@ -112,13 +124,28 @@ public class ShadowViewGroup extends ShadowView {
     public void removeAllViews() {
         for (View child : children) {
             shadowOf(child).parent = null;
+            if (onHierarchyChangeListener != null) {
+                onHierarchyChangeListener.onChildViewRemoved(this.realView, child);
+            }
         }
         children.clear();
+        requestLayout();
     }
 
     @Implementation
     public void removeViewAt(int position) {
-        shadowOf(children.remove(position)).parent = null;
+        View child = children.remove(position);
+        shadowOf(child).parent = null;
+        requestLayout();
+    }
+
+    @Implementation
+    public void removeView(View view) {
+        boolean removed = children.remove(view);
+        if (removed) {
+            shadowOf(view).parent = null;
+        }
+        requestLayout();
     }
 
     @Override
@@ -143,6 +170,11 @@ public class ShadowViewGroup extends ShadowView {
                 child.clearFocus();
             }
         }
+    }
+
+    @Implementation
+    public void setOnHierarchyChangeListener(ViewGroup.OnHierarchyChangeListener onHierarchyChangeListener) {
+        this.onHierarchyChangeListener = onHierarchyChangeListener;
     }
 
     /**
@@ -199,6 +231,16 @@ public class ShadowViewGroup extends ShadowView {
     }
 
     @Implementation
+    public void setLayoutAnimation(LayoutAnimationController layoutAnim) {
+        this.layoutAnim = layoutAnim;
+    }
+
+    @Implementation
+    public LayoutAnimationController getLayoutAnimation() {
+        return layoutAnim;
+    }
+
+    @Implementation
     public void requestDisallowInterceptTouchEvent(boolean disallowIntercept) {
         disallowInterceptTouchEvent = disallowIntercept;
     }
@@ -206,4 +248,15 @@ public class ShadowViewGroup extends ShadowView {
     public boolean getDisallowInterceptTouchEvent() {
         return disallowInterceptTouchEvent;
     }
+
+    public MotionEvent getInterceptedTouchEvent() {
+        return interceptedTouchEvent;
+    }
+
+    @Implementation
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        interceptedTouchEvent = ev;
+        return false;
+    }
+
 }

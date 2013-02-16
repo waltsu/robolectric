@@ -4,23 +4,16 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Point;
 import android.graphics.drawable.ColorDrawable;
-import android.view.MotionEvent;
-import android.view.View;
+import android.view.*;
 import android.view.View.MeasureSpec;
 import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
-import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.view.animation.Animation;
 import android.widget.LinearLayout;
 import com.xtremelabs.robolectric.R;
 import com.xtremelabs.robolectric.Robolectric;
 import com.xtremelabs.robolectric.WithTestDefaultsRunner;
-import com.xtremelabs.robolectric.util.TestAnimationListener;
-import com.xtremelabs.robolectric.util.TestOnClickListener;
-import com.xtremelabs.robolectric.util.TestOnLongClickListener;
-import com.xtremelabs.robolectric.util.TestRunnable;
-import com.xtremelabs.robolectric.util.Transcript;
+import com.xtremelabs.robolectric.util.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,9 +22,7 @@ import static com.xtremelabs.robolectric.Robolectric.shadowOf;
 import static junit.framework.Assert.assertEquals;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 @RunWith(WithTestDefaultsRunner.class)
 public class ViewTest {
@@ -415,6 +406,15 @@ public class ViewTest {
         assertThat(view.isShown(), is(false));
     }
 
+    @Test
+    public void shouldTrackRequestLayoutCalls() throws Exception {
+        assertThat(shadowOf(view).didRequestLayout(), is(false));
+        view.requestLayout();
+        assertThat(shadowOf(view).didRequestLayout(), is(true));
+        shadowOf(view).setDidRequestLayout(false);
+        assertThat(shadowOf(view).didRequestLayout(), is(false));
+    }
+
     public void shouldClickAndNotClick() throws Exception {
         assertThat(view.isClickable(), equalTo(false));
         view.setClickable(true);
@@ -446,6 +446,60 @@ public class ViewTest {
         assertThat(view.isLongClickable(), equalTo(true));
     }
 
+    @Test
+    public void setScaleX_shouldSetScaleX() throws Exception {
+        assertThat(shadowOf(view).getScaleX(), equalTo(1f));
+        shadowOf(view).setScaleX(2.5f);
+        assertThat(shadowOf(view).getScaleX(), equalTo(2.5f));
+        shadowOf(view).setScaleX(0.5f);
+        assertThat(shadowOf(view).getScaleX(), equalTo(0.5f));
+    }
+
+    @Test
+    public void setScaleY_shouldSetScaleY() throws Exception {
+        assertThat(shadowOf(view).getScaleX(), equalTo(1f));
+        shadowOf(view).setScaleY(2.5f);
+        assertThat(shadowOf(view).getScaleY(), equalTo(2.5f));
+        shadowOf(view).setScaleY(0.5f);
+        assertThat(shadowOf(view).getScaleY(), equalTo(0.5f));
+    }
+
+    @Test
+    public void performHapticFeedback_shouldSetLastPerformedHapticFeedback() throws Exception {
+        assertThat(shadowOf(view).lastHapticFeedbackPerformed(), equalTo(-1));
+        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+        assertThat(shadowOf(view).lastHapticFeedbackPerformed(), equalTo(HapticFeedbackConstants.LONG_PRESS));
+    }
+
+    @Test
+    public void canAssertThatSuperDotOnLayoutWasCalledFromViewSubclasses() throws Exception {
+        TestView2 view = new TestView2(new Activity());
+        assertThat(shadowOf(view).onLayoutWasCalled(), equalTo(false));
+        view.onLayout(true, 1, 2, 3, 4);
+        assertThat(shadowOf(view).onLayoutWasCalled(), equalTo(true));
+    }
+
+    @Test
+    public void setScrolls_canBeAskedFor() throws Exception {
+        view.setScrollX(234);
+        view.setScrollY(544);
+        assertThat(view.getScrollX(), equalTo(234));
+        assertThat(view.getScrollY(), equalTo(544));
+    }
+
+    @Test
+    public void setScrolls_firesOnScrollChanged() throws Exception {
+        TestView testView = new TestView(new Activity());
+        testView.setScrollX(122);
+        testView.setScrollY(150);
+        testView.setScrollX(453);
+        assertThat(testView.oldl, equalTo(122));
+        testView.setScrollY(54);
+        assertThat(testView.l, equalTo(453));
+        assertThat(testView.t, equalTo(54));
+        assertThat(testView.oldt, equalTo(150));
+    }
+
     private static class TestAnimation extends Animation {
     }
 
@@ -463,8 +517,12 @@ public class ViewTest {
         }
     }
 
-    private static class TestView extends View {
+    public static class TestView extends View {
         boolean onAnimationEndWasCalled;
+        private int l;
+        private int t;
+        private int oldl;
+        private int oldt;
 
         public TestView(Context context) {
             super(context);
@@ -475,11 +533,24 @@ public class ViewTest {
             super.onAnimationEnd();
             onAnimationEndWasCalled = true;
         }
+
+        @Override
+        public void onScrollChanged(int l, int t, int oldl, int oldt) {
+            this.l = l;
+            this.t = t;
+            this.oldl = oldl;
+            this.oldt = oldt;
+        }
     }
 
     private static class TestView2 extends View {
         public TestView2(Context context) {
             super(context);
+        }
+
+        @Override
+        public void onLayout(boolean changed, int l, int t, int r, int b) {
+            super.onLayout(changed, l, t, r, b);
         }
 
         @Override

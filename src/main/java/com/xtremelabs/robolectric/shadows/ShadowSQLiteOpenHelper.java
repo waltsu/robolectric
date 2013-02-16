@@ -17,13 +17,14 @@ import com.xtremelabs.robolectric.shadows.ShadowNotification.LatestEventInfo;
  */
 @Implements(SQLiteOpenHelper.class)
 public class ShadowSQLiteOpenHelper {
-
     @RealObject private SQLiteOpenHelper realHelper;
     private static SQLiteDatabase database;
     
     private static Context previousContext;
+    private String name;
 
     public void __constructor__(Context context, String name, CursorFactory factory, int version) {
+        this.name = name;
     	if (previousContext == null) {
     		previousContext = context;
     	} else {
@@ -69,5 +70,10 @@ public class ShadowSQLiteOpenHelper {
 
         realHelper.onOpen(database);
         return database;
+    }
+
+    @Implementation
+    public String getDatabaseName() {
+        return name;
     }
 }

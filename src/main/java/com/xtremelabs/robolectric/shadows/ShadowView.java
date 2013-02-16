@@ -50,6 +50,8 @@ public class ShadowView {
     int top;
     int right;
     int bottom;
+    float x;
+    float y;
     private int paddingLeft;
     private int paddingTop;
     private int paddingRight;
@@ -69,7 +71,7 @@ public class ShadowView {
     private View.OnTouchListener onTouchListener;
     protected AttributeSet attributeSet;
     private boolean drawingCacheEnabled;
-    public Point scrollToCoordinates;
+    public Point scrollToCoordinates = new Point();
     private boolean didRequestLayout;
     private Drawable background;
     private Animation animation;
@@ -83,6 +85,10 @@ public class ShadowView {
     private float translationX = 0.0f;
     private float translationY = 0.0f;
     private float alpha = 1.0f;
+    private float scaleX = 1.0f;
+    private float scaleY = 1.0f;
+    private int hapticFeedbackPerformed = -1;
+    private boolean onLayoutWasCalled;
 
     public void __constructor__(Context context) {
         __constructor__(context, null);
@@ -109,6 +115,9 @@ public class ShadowView {
         applyTagAttribute();
         applyOnClickAttribute();
         applyContentDescriptionAttribute();
+
+        // todo test
+        applyAlphaAttribute();
     }
 
     @Implementation
@@ -120,10 +129,10 @@ public class ShadowView {
     public void setClickable(boolean clickable) {
         this.clickable = clickable;
     }
-    
+
     @Implementation
     public void setLongClickable(boolean longClickable) {
-    	this.longClickable = longClickable;
+        this.longClickable = longClickable;
     }
 
     /**
@@ -279,6 +288,11 @@ public class ShadowView {
     }
 
     @Implementation
+    public void setBackground(Drawable d) {
+        setBackgroundDrawable(d);
+    }
+
+    @Implementation
     public void setBackgroundDrawable(Drawable d) {
         this.background = d;
     }
@@ -322,7 +336,7 @@ public class ShadowView {
     public void setOnClickListener(View.OnClickListener onClickListener) {
         this.onClickListener = onClickListener;
         if (!isClickable()) {
-        	setClickable(true);
+            setClickable(true);
         }
     }
 
@@ -340,7 +354,7 @@ public class ShadowView {
     public void setOnLongClickListener(View.OnLongClickListener onLongClickListener) {
         this.onLongClickListener = onLongClickListener;
         if (!isLongClickable()) {
-        	setLongClickable(true);
+            setLongClickable(true);
         }
     }
 
@@ -388,39 +402,39 @@ public class ShadowView {
     public final int getMeasuredHeight() {
         return measuredHeight;
     }
-    
+
     @Implementation
     public final void setMeasuredDimension(int measuredWidth, int measuredHeight) {
-    	this.measuredWidth = measuredWidth;
-    	this.measuredHeight = measuredHeight;
+        this.measuredWidth = measuredWidth;
+        this.measuredHeight = measuredHeight;
     }
-    
+
     @Implementation
     public void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-    	setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec),
-    			MeasureSpec.getSize(heightMeasureSpec));
+        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec),
+                MeasureSpec.getSize(heightMeasureSpec));
     }
-    
+
     @Implementation
     public final void measure(int widthMeasureSpec, int heightMeasureSpec) {
-    	// We really want to invoke the onMeasure method of the real view,
-    	// as the real View likely contains an implementation of onMeasure
-    	// worthy of test, rather the default shadow implementation.
-    	// But Android declares onMeasure as protected.
-    	try {
-    		Method onMeasureMethod = realView.getClass().getDeclaredMethod("onMeasure", Integer.TYPE, Integer.TYPE );
-    		onMeasureMethod.setAccessible(true);
-    		onMeasureMethod.invoke( realView, widthMeasureSpec, heightMeasureSpec );
-    	} catch ( NoSuchMethodException e ) { 
-    		// use default shadow implementation
-    		onMeasure(widthMeasureSpec, heightMeasureSpec);
-    	} catch ( IllegalAccessException e ) { 
-    		throw new RuntimeException(e);
-    	} catch ( InvocationTargetException e ) { 
-    		throw new RuntimeException(e); 
-    	} 
+        // We really want to invoke the onMeasure method of the real view,
+        // as the real View likely contains an implementation of onMeasure
+        // worthy of test, rather the default shadow implementation.
+        // But Android declares onMeasure as protected.
+        try {
+            Method onMeasureMethod = realView.getClass().getDeclaredMethod("onMeasure", Integer.TYPE, Integer.TYPE);
+            onMeasureMethod.setAccessible(true);
+            onMeasureMethod.invoke(realView, widthMeasureSpec, heightMeasureSpec);
+        } catch (NoSuchMethodException e) {
+            // use default shadow implementation
+            onMeasure(widthMeasureSpec, heightMeasureSpec);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
     }
-    
+
     @Implementation
     public final void layout(int l, int t, int r, int b) {
         left = l;
@@ -428,6 +442,15 @@ public class ShadowView {
         right = r;
         bottom = b;
 // todo:       realView.onLayout();
+    }
+
+    @Implementation
+    public void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        onLayoutWasCalled = true;
+    }
+
+    public boolean onLayoutWasCalled() {
+        return onLayoutWasCalled;
     }
 
     @Implementation
@@ -475,6 +498,10 @@ public class ShadowView {
 
     public boolean didRequestLayout() {
         return didRequestLayout;
+    }
+
+    public void setDidRequestLayout(boolean didRequestLayout) {
+        this.didRequestLayout = didRequestLayout;
     }
 
     @Implementation
@@ -682,7 +709,7 @@ public class ShadowView {
     public boolean isLongClickable() {
         return longClickable;
     }
-    
+
     /**
      * Non-Android accessor.
      *
@@ -717,6 +744,26 @@ public class ShadowView {
     @Implementation
     public void setBottom(int bottom) {
         this.bottom = bottom;
+    }
+
+    @Implementation
+    public void setX(float newX) {
+        this.x = newX;
+    }
+
+    @Implementation
+    public void setY(float newY) {
+        this.y = newY;
+    }
+
+    @Implementation
+    public float getX() {
+        return this.x;
+    }
+
+    @Implementation
+    public float getY() {
+        return this.y;
     }
 
     /**
@@ -857,6 +904,13 @@ public class ShadowView {
         });
     }
 
+    private void applyAlphaAttribute() {
+        Float alpha = attributeSet.getAttributeFloatValue("android", "alpha", 1f);
+        if (alpha != null) {
+            setAlpha(alpha);
+        }
+    }
+
     private void applyContentDescriptionAttribute() {
         String contentDescription = attributeSet.getAttributeValue("android", "contentDescription");
         if (contentDescription != null) {
@@ -964,7 +1018,14 @@ public class ShadowView {
 
     @Implementation
     public void scrollTo(int x, int y) {
-        this.scrollToCoordinates = new Point(x, y);
+        try {
+            Method method = View.class.getDeclaredMethod("onScrollChanged", new Class[]{int.class, int.class, int.class, int.class});
+            method.setAccessible(true);
+            method.invoke(realView, x, y, scrollToCoordinates.x, scrollToCoordinates.y);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        scrollToCoordinates = new Point(x, y);
     }
 
     @Implementation
@@ -975,6 +1036,36 @@ public class ShadowView {
     @Implementation
     public int getScrollY() {
         return scrollToCoordinates != null ? scrollToCoordinates.y : 0;
+    }
+
+    @Implementation
+    public void setScrollX(int scrollX){
+        scrollTo(scrollX, scrollToCoordinates.y);
+    }
+
+    @Implementation
+    public void setScrollY(int scrollY){
+        scrollTo(scrollToCoordinates.x, scrollY);
+    }
+
+    @Implementation
+    public void setScaleX(float scaleX) {
+        this.scaleX = scaleX;
+    }
+
+    @Implementation
+    public float getScaleX() {
+        return scaleX;
+    }
+
+    @Implementation
+    public void setScaleY(float scaleY) {
+        this.scaleY = scaleY;
+    }
+
+    @Implementation
+    public float getScaleY() {
+        return scaleY;
     }
 
     @Implementation
@@ -1031,14 +1122,24 @@ public class ShadowView {
             throw new RuntimeException(e);
         }
     }
-    
+
     @Implementation
-    public void setTouchDelegate (TouchDelegate delegate) {
-    	this.touchDelegate = delegate;
+    public void setTouchDelegate(TouchDelegate delegate) {
+        this.touchDelegate = delegate;
     }
-    
+
     @Implementation
-    public TouchDelegate getTouchDelegate()  {
-    	return touchDelegate;
+    public TouchDelegate getTouchDelegate() {
+        return touchDelegate;
+    }
+
+    @Implementation
+    public boolean performHapticFeedback(int hapticFeedbackType) {
+        hapticFeedbackPerformed = hapticFeedbackType;
+        return true;
+    }
+
+    public int lastHapticFeedbackPerformed() {
+        return hapticFeedbackPerformed;
     }
 }

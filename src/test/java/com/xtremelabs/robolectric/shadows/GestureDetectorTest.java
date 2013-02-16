@@ -2,6 +2,7 @@ package com.xtremelabs.robolectric.shadows;
 
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import com.xtremelabs.robolectric.Robolectric;
 import com.xtremelabs.robolectric.WithTestDefaultsRunner;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,6 +54,48 @@ public class GestureDetectorTest {
         TestOnGestureListener listener = new TestOnGestureListener();
         assertSame(listener, shadowOf(new GestureDetector(listener)).getListener());
         assertSame(listener, shadowOf(new GestureDetector(null, listener)).getListener());
+    }
+
+    @Test
+    public void canAnswerLastGestureDetector() throws Exception {
+        GestureDetector newDetector = new GestureDetector(Robolectric.application, null);
+        assertNotSame(newDetector, ShadowGestureDetector.getLastActiveDetector());
+        newDetector.onTouchEvent(null);
+        assertSame(newDetector, ShadowGestureDetector.getLastActiveDetector());
+    }
+
+    @Test
+    public void getOnDoubleTapListener_shouldReturnSetDoubleTapListener() throws Exception {
+        GestureDetector subject = new GestureDetector(Robolectric.application, null);
+        GestureDetector.OnDoubleTapListener onDoubleTapListener = new GestureDetector.OnDoubleTapListener() {
+            @Override
+            public boolean onSingleTapConfirmed(MotionEvent e) {
+                return false;
+            }
+
+            @Override
+            public boolean onDoubleTap(MotionEvent e) {
+                return false;
+            }
+
+            @Override
+            public boolean onDoubleTapEvent(MotionEvent e) {
+                return false;
+            }
+        };
+
+        subject.setOnDoubleTapListener(onDoubleTapListener);
+        assertEquals(shadowOf(subject).getOnDoubleTapListener(), onDoubleTapListener);
+
+        subject.setOnDoubleTapListener(null);
+        assertEquals(shadowOf(subject).getOnDoubleTapListener(), null);
+    }
+
+    @Test
+    public void getOnDoubleTapListener_shouldReturnOnGestureListenerFromConstructor() throws Exception {
+        GestureDetector.OnGestureListener onGestureListener = new GestureDetector.SimpleOnGestureListener();
+        GestureDetector subject = new GestureDetector(Robolectric.application, onGestureListener);
+        assertEquals(shadowOf(subject).getOnDoubleTapListener(), onGestureListener);
     }
 
     private static class TestOnGestureListener implements GestureDetector.OnGestureListener {
